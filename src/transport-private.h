@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "xdebug.h"
+
 #include <stdint.h>
 
 #include "usb.h"
@@ -46,22 +48,13 @@ typedef struct debug_context DC;
 #define DC_ATTACHED 0 // attached and ready to do txns
 #define DC_FAILURE  1 // last txn failed, need to re-attach
 #define DC_DETACHED 2 // have not yet attached
-#define DC_OFFLINE  3 // usb connection not available
+#define DC_UNCONFIG 3 // configure failed
+#define DC_OFFLINE  4 // usb connection not available
 
 #define INVALID 0xFFFFFFFFU
 
 
-#define WITH_TRACE 0
-
-#if WITH_TRACE
-#define TRACE(fmt...) fprintf(stderr, fmt)
-#else
-#define TRACE(fmt...) do {} while (0)
-#endif
-
-#define ERROR(fmt...) fprintf(stderr, fmt)
-
-#if WITH_TRACE
+#if 0
 static void dump(const char* str, const void* ptr, unsigned len) {
 	const uint8_t* x = ptr;
 	TRACE("%s", str);

@@ -5,6 +5,13 @@
 
 #include <stdint.h>
 
+
+void dc_require_vid_pid(unsigned vid, unsigned pid);
+void dc_require_serialno(const char* sn);
+
+typedef struct debug_context dctx_t;
+int dc_periodic(dctx_t* dc);
+
 #define DC_OK               0
 #define DC_ERR_FAILED      -1  // generic internal failure
 #define DC_ERR_BAD_PARAMS  -2  // Invalid parameters
@@ -20,8 +27,6 @@
 #define DC_ERR_UNSUPPORTED -12 // unsupported operation
 #define DC_ERR_REMOTE      -13 // failure from debug probe
 #define DC_ERR_DETACHED    -14 // transport not connected to target
-
-typedef struct debug_context dctx_t;
 
 int dc_set_clock(dctx_t* dc, uint32_t hz);
 
