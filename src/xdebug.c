@@ -18,6 +18,8 @@
 
 #define MAX_ARGS 16
 
+static int debug = 0;
+
 static const char* NTH(unsigned n) {
 	switch (n) {
 	case 1: return "1st ";
@@ -116,6 +118,8 @@ int parse(TOKEN* tok) {
 void debug_command(char *line) {
 	CC cc;
 
+	INFO("> %s\n", line);
+
 	while (*line && (*line <= ' ')) line++;
 	if (*line == '/') {
 		cc.count = 2;
@@ -186,6 +190,8 @@ static void *work_thread(void* arg) {
 			exit(-1);
 		}
 		if (r == 0) {
+			char statusline[64];
+			statusline[0] = 0;
 			timeout = dc_periodic(dc);
 			if (timeout < 100) {
 				timeout = 100;
@@ -204,10 +210,37 @@ static void *work_thread(void* arg) {
 	return 0;
 }
 
+const char* status_text(uint32_t status) {
+	switch (status) {
+	case DC_ATTACHED:
+		return "[ATTACHED]";
+	case DC_FAILURE:
+	case DC_DETACHED:
+	case DC_UNCONFIG:
+		return "[DETACHED]";
+	case DC_OFFLINE:
+	default:
+		return "[OFFLINE]";
+	}
+}
+
+void handle_status(void* cookie, uint32_t status) {
+	tui_status_rhs(status_text(status));
+}
+
 void handle_line(char *line, unsigned len) {
+	if (!strcmp(line, "@ESC@")) {
+		dc_interrupt(dc);
+		return;
+	}
+	if (len == 0) {
+		return;
+	}
 	if (busy) {
 		INFO("busy\n");
-	} else if (len < (sizeof(linebuf)-1)) {
+		return;
+	}
+	if (len < (sizeof(linebuf)-1)) {
 		memcpy(linebuf, line, len + 1);
 		busy = 1;
 		uint64_t n = 1;
@@ -251,7 +284,7 @@ int main(int argc, char** argv) {
 
 	tui_init();
 	tui_ch_create(&ch, 0);
-	dc_create(&dc);
+	dc_create(&dc, handle_status, NULL);
 
 	pthread_t t;
 	if (pthread_create(&t, NULL, work_thread, NULL) != 0) {
@@ -274,7 +307,11 @@ void MSG(uint32_t flags, const char* fmt, ...) {
 	va_start(ap, fmt);
 	switch (flags) {
 	case mDEBUG:
-		tui_ch_printf(ch, "debug: ");
+		if (debug) {
+			tui_ch_printf(ch, "debug: ");
+		} else {
+			return;
+		}
 		break;
 	case mTRACE:
 		tui_ch_printf(ch, "trace: ");
