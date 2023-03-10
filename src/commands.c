@@ -9,12 +9,24 @@
 #include "arm-v7-system-control.h"
 
 
+static uint32_t swd_clock_freq = 1000000;
+
 int do_attach(DC* dc, CC* cc) {
 	uint32_t n;
-	dc_set_clock(dc, 4000000);
+	dc_set_clock(dc, swd_clock_freq);
 	return dc_attach(dc, 0, 0, &n);
 }
 
+int do_setclock(DC* dc, CC* cc) {
+	uint32_t mhz;
+	if ((cmd_arg_u32(cc, 1, &mhz) < 0) || (mhz < 1) || (mhz > 20)) {
+		ERROR("setclock <mhz> -- between 1 and 20\n");
+		return DBG_ERR;
+	}
+	swd_clock_freq = mhz * 1000000;
+	dc_set_clock(dc, swd_clock_freq);
+	return 0;
+}
 
 static uint32_t reglist[20] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -255,6 +267,9 @@ int do_exit(DC* dc, CC* cc) {
 
 int do_help(DC* dc, CC* cc);
 
+int do_upload(DC* dc, CC* cc);
+int do_download(DC* dc, CC* cc);
+
 struct {
 	const char* name;
 	int (*func)(DC* dc, CC* cc);
@@ -274,6 +289,9 @@ struct {
 { "dr",         do_rd,         NULL },
 { "wr",         do_wr,         "write word            wr <addr> <val>" },
 { "regs",       do_regs,       "dump registers" },
+{ "download",   do_download,   "write file to memory  download <file> <addr>" },
+{ "upload",     do_upload,     "read memory to file   upload <file> <addr> <len>" },
+{ "setclock",   do_setclock,   "set SWD clock freq    setclock <mhz>" },
 { "help",       do_help,       "list commands" },
 { "exit",       do_exit,       "exit debugger" },
 { "quit",       do_exit,       NULL },
